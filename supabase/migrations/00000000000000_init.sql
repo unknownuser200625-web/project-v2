@@ -1,0 +1,3 @@
+-- Initial migration baseline
+-- Do not modify production directly
+-- All schema changes must go through migrations
