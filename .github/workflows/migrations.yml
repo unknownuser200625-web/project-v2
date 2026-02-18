@@ -34,16 +34,23 @@ jobs:
             echo "::error::DB_URL secret is empty or not set. Migration cannot proceed."
             exit 1
           fi
-          # Extract hostname only for security
+          # Extract hostname
           DB_HOST=$(echo "$DB_URL" | sed -e 's|.*@||' -e 's|:.*||')
           echo "Target Database Host: $DB_HOST"
 
+          # Strict verification for staging
+          if [ "${{ github.ref_name }}" = "staging" ]; then
+            if [[ "$DB_HOST" != *"spkjdfynuoktuicrwpkl"* ]]; then
+              echo "::error::Staging Secret Mismatch! Target host $DB_HOST does not contain project ref spkjdfynuoktuicrwpkl."
+              exit 1
+            fi
+          fi
+
           echo "Verifying CLI project context..."
-          supabase projects list
+          # This may fail if SUPABASE_ACCESS_TOKEN is missing, which is another diagnostic hint
+          supabase projects list || echo "Note: 'supabase projects list' failed (token may be missing)"
 
           echo "Attempting remote connection verification..."
-          # remote commit pulls remote changes into a new migration file; 
-          # here we use it strictly to verify the connection and project ref.
           supabase db remote commit --db-url "$DB_URL"
 
       - name: Run migration dry-run
