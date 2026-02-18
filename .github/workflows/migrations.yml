@@ -28,6 +28,24 @@ jobs:
             echo "DB_URL=${{ secrets.SUPABASE_PROD_DB_URL }}" >> $GITHUB_ENV
           fi
 
+      - name: Connection Audit
+        run: |
+          if [ -z "$DB_URL" ]; then
+            echo "::error::DB_URL secret is empty or not set. Migration cannot proceed."
+            exit 1
+          fi
+          # Extract hostname only for security
+          DB_HOST=$(echo "$DB_URL" | sed -e 's|.*@||' -e 's|:.*||')
+          echo "Target Database Host: $DB_HOST"
+
+          echo "Verifying CLI project context..."
+          supabase projects list
+
+          echo "Attempting remote connection verification..."
+          # remote commit pulls remote changes into a new migration file; 
+          # here we use it strictly to verify the connection and project ref.
+          supabase db remote commit --db-url "$DB_URL"
+
       - name: Run migration dry-run
         run: |
           supabase db push --dry-run --db-url "$DB_URL"
