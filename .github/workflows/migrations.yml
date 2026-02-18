@@ -34,14 +34,17 @@ jobs:
             echo "::error::DB_URL secret is empty or not set. Migration cannot proceed."
             exit 1
           fi
-          # Extract hostname
-          DB_HOST=$(echo "$DB_URL" | sed -e 's|.*@||' -e 's|:.*||')
-          echo "Target Database Host: $DB_HOST"
 
-          # Strict verification for staging
+          # Extract project ref from username part
+          PROJECT_REF=$(echo "$DB_URL" | sed -E 's|postgresql://postgres\.([a-z0-9]+).*|\1|')
+
+          echo "Extracted Project Ref: $PROJECT_REF"
+
+          EXPECTED_STAGING_REF="spkjdfynuoktuicrwpkl"
+
           if [ "${{ github.ref_name }}" = "staging" ]; then
-            if [[ "$DB_HOST" != *"spkjdfynuoktuicrwpkl"* ]]; then
-              echo "::error::Staging Secret Mismatch! Target host $DB_HOST does not contain project ref spkjdfynuoktuicrwpkl."
+            if [ "$PROJECT_REF" != "$EXPECTED_STAGING_REF" ]; then
+              echo "::error::Staging Secret Mismatch! Expected $EXPECTED_STAGING_REF but got $PROJECT_REF"
               exit 1
             fi
           fi
