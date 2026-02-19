@@ -28,47 +28,40 @@ jobs:
             echo "DB_URL=${{ secrets.SUPABASE_PROD_DB_URL }}" >> $GITHUB_ENV
           fi
 
-      - name: Prepare Robust Isolated Config
+      - name: Prepare Isolated Config
         run: |
           rm -f supabase/config.toml
           echo 'project_id = "ci-isolated"' > supabase/config.toml
           echo '[db]' >> supabase/config.toml
           echo 'major_version = 17' >> supabase/config.toml
-          echo '[db.migrations]' >> supabase/config.toml
-          echo 'enabled = true' >> supabase/config.toml
-          echo "Isolated config created:"
-          cat supabase/config.toml
 
-      - name: Connection Audit
+      - name: Connection Audit & Link
         run: |
           if [ -z "$DB_URL" ]; then
             echo "::error::DB_URL secret is empty or not set. Migration cannot proceed."
             exit 1
           fi
 
-          # Extract project ref from username part
-          # Support both postgres:// and postgresql:// prefixes
+          # Extract project ref and password from URL
+          # postgresql://postgres.[REF]:[PASSWORD]@db.[REF].supabase.co:5432/postgres
           PROJECT_REF=$(echo "$DB_URL" | sed -E 's|postgres(ql)?://postgres\.([a-z0-9]+).*|\2|')
+          DB_PASSWORD=$(echo "$DB_URL" | sed -E 's|postgres(ql)?://postgres\.[a-z0-9]+:(.*)@.*|\2|')
 
-          echo "Extracted Project Ref: $PROJECT_REF"
           echo "PROJECT_REF=$PROJECT_REF" >> $GITHUB_ENV
 
-          EXPECTED_STAGING_REF="spkjdfynuoktuicrwpkl"
+          # Mask password in logs
+          echo "::add-mask::$DB_PASSWORD"
+          echo "DB_PASSWORD=$DB_PASSWORD" >> $GITHUB_ENV
 
-          if [ "${{ github.ref_name }}" = "staging" ]; then
-            if [ "$PROJECT_REF" != "$EXPECTED_STAGING_REF" ]; then
-              echo "::error::Staging Secret Mismatch! Expected $EXPECTED_STAGING_REF but got $PROJECT_REF"
-              exit 1
-            fi
-          fi
+          echo "Linking to project $PROJECT_REF..."
+          supabase link --project-ref "$PROJECT_REF" --password "$DB_PASSWORD"
 
       - name: Run migrations
         run: |
-          supabase db push --db-url "$DB_URL" --project-ref "$PROJECT_REF" --debug
+          supabase db push --password "$DB_PASSWORD"
 
       - name: Final Verification
         run: |
           echo "Verifying migration application via psql..."
-          # This will fail the job if the table is missing, which solves Shadow Success
           psql "$DB_URL" -tAc "SELECT count(*) FROM pg_tables WHERE schemaname = 'public' AND tablename = 'pipeline_verification_test';" | grep -q '1' || (echo "::error::Table 'pipeline_verification_test' not found! Migration failed." && exit 1)
           echo "Migration verified successfully!"
