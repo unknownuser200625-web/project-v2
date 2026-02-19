@@ -28,6 +28,9 @@ jobs:
             echo "DB_URL=${{ secrets.SUPABASE_PROD_DB_URL }}" >> $GITHUB_ENV
           fi
 
+      - name: Clean Supabase Config
+        run: rm -f supabase/config.toml
+
       - name: Connection Audit
         run: |
           if [ -z "$DB_URL" ]; then
@@ -49,13 +52,6 @@ jobs:
               exit 1
             fi
           fi
-
-          echo "Verifying CLI project context..."
-          # This may fail if SUPABASE_ACCESS_TOKEN is missing, which is another diagnostic hint
-          supabase projects list || echo "Note: 'supabase projects list' failed (token may be missing)"
-
-          echo "Attempting remote connection verification..."
-          supabase db remote commit --db-url "$DB_URL"
 
       - name: Run migration dry-run
         run: |
