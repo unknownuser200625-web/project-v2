@@ -17,7 +17,7 @@ jobs:
       - name: Setup Supabase CLI
         uses: supabase/setup-cli@v1
         with:
-          version: 1.187.14
+          version: 1.191.0
 
       - name: Set environment based on branch
         id: env
@@ -31,13 +31,12 @@ jobs:
       - name: Directory Audit
         run: |
           echo "Current Path: $(pwd)"
-          echo "Listing supabase directory:"
-          ls -R supabase
+          echo "Listing supabase/migrations folder:"
+          ls -R supabase/migrations
 
       - name: Clean Supabase Config
         run: |
           rm -f supabase/config.toml
-          supabase init
 
       - name: Connection Audit
         run: |
@@ -73,6 +72,12 @@ jobs:
           supabase db push --db-url "$DB_URL" --project-ref "$PROJECT_REF" --debug > push_log.txt 2>&1
           echo "--- PUSH DEBUG LOG ---"
           cat push_log.txt
+
+      - name: Internal Database Verification
+        run: |
+          echo "Verifying migration application via psql..."
+          psql "$DB_URL" -c "SELECT tablename FROM pg_tables WHERE schemaname = 'public' AND tablename = 'pipeline_verification_test';" || echo "Table not found!"
+          psql "$DB_URL" -c "SELECT nspname FROM pg_namespace WHERE nspname = 'supabase_migrations';" || echo "Schema not found!"
 
       - name: Upload Migration Logs
         if: always()
