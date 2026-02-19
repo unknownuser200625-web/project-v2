@@ -58,11 +58,15 @@ jobs:
 
       - name: Run migration dry-run
         run: |
-          supabase db push --dry-run --db-url "$DB_URL" --project-ref "$PROJECT_REF" --debug > dry_run_log.txt 2>&1
+          supabase db push --dry-run --db-url "$DB_URL" --project-ref "$PROJECT_REF" --debug > dry_run_log.txt 2>&1 || true
+          echo "--- DRY RUN DEBUG LOG ---"
+          cat dry_run_log.txt
 
       - name: Run migrations
         run: |
-          supabase db push --db-url "$DB_URL" --project-ref "$PROJECT_REF" --debug > push_log.txt 2>&1
+          supabase db push --db-url "$DB_URL" --project-ref "$PROJECT_REF" --debug > push_log.txt 2>&1 || true
+          echo "--- PUSH DEBUG LOG ---"
+          cat push_log.txt
 
       - name: Upload Migration Logs
         if: always()
