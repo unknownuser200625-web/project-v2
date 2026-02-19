@@ -14,11 +14,6 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Setup Supabase CLI
-        uses: supabase/setup-cli@v1
-        with:
-          version: 1.191.0
-
       - name: Set environment based on branch
         id: env
         run: |
@@ -28,42 +23,41 @@ jobs:
             echo "DB_URL=${{ secrets.SUPABASE_PROD_DB_URL }}" >> $GITHUB_ENV
           fi
 
-      - name: Prepare Isolated Config
-        run: |
-          rm -f supabase/config.toml
-          echo 'project_id = "ci-isolated"' > supabase/config.toml
-          echo '[db]' >> supabase/config.toml
-          echo 'major_version = 17' >> supabase/config.toml
-
-      - name: Connection Audit & Link
+      - name: Connection Audit
         run: |
           if [ -z "$DB_URL" ]; then
             echo "::error::DB_URL secret is empty or not set. Migration cannot proceed."
             exit 1
           fi
 
-          # Extract project ref and password from URL
-          # postgresql://postgres.[REF]:[PASSWORD]@db.[REF].supabase.co:5432/postgres
-          PROJECT_REF=$(echo "$DB_URL" | sed -E 's|postgres(ql)?://postgres\.([a-z0-9]+).*|\2|')
-          DB_PASSWORD=$(echo "$DB_URL" | sed -E 's|postgres(ql)?://postgres\.[a-z0-9]+:(.*)@.*|\2|')
-
-          echo "PROJECT_REF=$PROJECT_REF" >> $GITHUB_ENV
-
-          # Mask password in logs
-          echo "::add-mask::$DB_PASSWORD"
-          echo "DB_PASSWORD=$DB_PASSWORD" >> $GITHUB_ENV
-
-          echo "Linking to project $PROJECT_REF..."
-          supabase link --project-ref "$PROJECT_REF" --password "$DB_PASSWORD"
-
-      - name: Run migrations
+      - name: Run Migrations (Robust Fallback)
         run: |
-          # Use explicit connection parameters to ensure success in stateless environment
-          supabase db push --db-url "$DB_URL" --project-ref "$PROJECT_REF" --password "$DB_PASSWORD" --debug
+          echo "Starting robust psql-based migration runner..."
+
+          # Create migration tracking table if it doesn't exist (Supabase standard)
+          psql "$DB_URL" -c "CREATE SCHEMA IF NOT EXISTS supabase_migrations;"
+          psql "$DB_URL" -c "CREATE TABLE IF NOT EXISTS supabase_migrations.schema_migrations (version text PRIMARY KEY, name text, statements text[], created_by text);"
+
+          # Iterate through migrations in order
+          for f in $(ls supabase/migrations/*.sql | sort); do
+            VERSION=$(basename "$f" | cut -d'_' -f1)
+            NAME=$(basename "$f" | cut -d'_' -f2- | sed 's/\.sql//')
+            
+            # Check if already applied
+            APPLIED=$(psql "$DB_URL" -tAc "SELECT count(*) FROM supabase_migrations.schema_migrations WHERE version = '$VERSION';")
+            
+            if [ "$APPLIED" = "0" ]; then
+              echo "Applying migration: $VERSION ($NAME)..."
+              # Apply SQL and record success
+              psql "$DB_URL" -f "$f" && \
+              psql "$DB_URL" -c "INSERT INTO supabase_migrations.schema_migrations (version, name, created_by) VALUES ('$VERSION', '$NAME', 'ci-automation');"
+            else
+              echo "Migration $VERSION already applied. Skipping."
+            fi
+          done
 
       - name: Final Verification
         run: |
-          echo "Verifying migration application via psql..."
-          # Verify the automation proof table specifically
+          echo "Verifying migration application..."
           psql "$DB_URL" -tAc "SELECT count(*) FROM pg_tables WHERE schemaname = 'public' AND tablename = 'pipeline_automation_proof';" | grep -q '1' || (echo "::error::Table 'pipeline_automation_proof' not found! Migration failed." && exit 1)
           echo "Migration verified successfully!"
