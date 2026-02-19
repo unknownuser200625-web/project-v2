@@ -28,15 +28,14 @@ jobs:
             echo "DB_URL=${{ secrets.SUPABASE_PROD_DB_URL }}" >> $GITHUB_ENV
           fi
 
-      - name: Directory Audit
-        run: |
-          echo "Current Path: $(pwd)"
-          echo "Listing supabase/migrations folder:"
-          ls -R supabase/migrations
-
-      - name: Clean Supabase Config
+      - name: Prepare Isolated Config
         run: |
           rm -f supabase/config.toml
+          echo 'project_id = "ci-isolated"' > supabase/config.toml
+          echo '[db]' >> supabase/config.toml
+          echo 'major_version = 17' >> supabase/config.toml
+          echo "Isolated config created:"
+          cat supabase/config.toml
 
       - name: Connection Audit
         run: |
@@ -63,27 +62,13 @@ jobs:
 
       - name: Run migration dry-run
         run: |
-          supabase db push --dry-run --db-url "$DB_URL" --project-ref "$PROJECT_REF" --debug > dry_run_log.txt 2>&1
-          echo "--- DRY RUN DEBUG LOG ---"
-          cat dry_run_log.txt
+          supabase db push --dry-run --db-url "$DB_URL" --project-ref "$PROJECT_REF" --debug
 
       - name: Run migrations
         run: |
-          supabase db push --db-url "$DB_URL" --project-ref "$PROJECT_REF" --debug > push_log.txt 2>&1
-          echo "--- PUSH DEBUG LOG ---"
-          cat push_log.txt
+          supabase db push --db-url "$DB_URL" --project-ref "$PROJECT_REF" --debug
 
-      - name: Internal Database Verification
+      - name: Final Verification
         run: |
           echo "Verifying migration application via psql..."
-          psql "$DB_URL" -c "SELECT tablename FROM pg_tables WHERE schemaname = 'public' AND tablename = 'pipeline_verification_test';" || echo "Table not found!"
-          psql "$DB_URL" -c "SELECT nspname FROM pg_namespace WHERE nspname = 'supabase_migrations';" || echo "Schema not found!"
-
-      - name: Upload Migration Logs
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: migration-logs
-          path: |
-            dry_run_log.txt
-            push_log.txt
+          psql "$DB_URL" -c "SELECT tablename FROM pg_tables WHERE schemaname = 'public' AND tablename = 'pipeline_verification_test';"
