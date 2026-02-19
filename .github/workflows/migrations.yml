@@ -29,7 +29,9 @@ jobs:
           fi
 
       - name: Clean Supabase Config
-        run: rm -f supabase/config.toml
+        run: |
+          rm -f supabase/config.toml
+          supabase init
 
       - name: Connection Audit
         run: |
@@ -55,8 +57,8 @@ jobs:
 
       - name: Run migration dry-run
         run: |
-          supabase db push --dry-run --db-url "$DB_URL"
+          supabase db push --dry-run --db-url "$DB_URL" --project-ref "$PROJECT_REF"
 
       - name: Run migrations
         run: |
-          supabase db push --db-url "$DB_URL"
+          supabase db push --db-url "$DB_URL" --project-ref "$PROJECT_REF"
