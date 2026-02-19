@@ -17,7 +17,7 @@ jobs:
       - name: Setup Supabase CLI
         uses: supabase/setup-cli@v1
         with:
-          version: 1.191.0
+          version: 1.187.14
 
       - name: Set environment based on branch
         id: env
@@ -27,6 +27,12 @@ jobs:
           else
             echo "DB_URL=${{ secrets.SUPABASE_PROD_DB_URL }}" >> $GITHUB_ENV
           fi
+
+      - name: Directory Audit
+        run: |
+          echo "Current Path: $(pwd)"
+          echo "Listing supabase directory:"
+          ls -R supabase
 
       - name: Clean Supabase Config
         run: |
@@ -58,13 +64,13 @@ jobs:
 
       - name: Run migration dry-run
         run: |
-          supabase db push --dry-run --db-url "$DB_URL" --project-ref "$PROJECT_REF" --debug > dry_run_log.txt 2>&1 || true
+          supabase db push --dry-run --db-url "$DB_URL" --project-ref "$PROJECT_REF" --debug > dry_run_log.txt 2>&1
           echo "--- DRY RUN DEBUG LOG ---"
           cat dry_run_log.txt
 
       - name: Run migrations
         run: |
-          supabase db push --db-url "$DB_URL" --project-ref "$PROJECT_REF" --debug > push_log.txt 2>&1 || true
+          supabase db push --db-url "$DB_URL" --project-ref "$PROJECT_REF" --debug > push_log.txt 2>&1
           echo "--- PUSH DEBUG LOG ---"
           cat push_log.txt
 
