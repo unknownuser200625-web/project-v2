@@ -29,7 +29,9 @@ jobs:
           fi
 
       - name: Clean Supabase Config
-        run: rm -f supabase/config.toml
+        run: |
+          rm -f supabase/config.toml
+          supabase init
 
       - name: Connection Audit
         run: |
