@@ -40,6 +40,7 @@ jobs:
 
           # Extract project ref from username part
           # Support both postgres:// and postgresql:// prefixes
+          echo "Connection URL (masked): $(echo "$DB_URL" | sed 's/:[^@:]*@/:****@/')"
           PROJECT_REF=$(echo "$DB_URL" | sed -E 's|postgres(ql)?://postgres\.([a-z0-9]+).*|\2|')
 
           echo "Extracted Project Ref: $PROJECT_REF"
