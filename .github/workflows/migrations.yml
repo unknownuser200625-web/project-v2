@@ -57,6 +57,14 @@ jobs:
       - name: Run migration dry-run
         run: |
           ls -R supabase
+          MIGRATION_COUNT=$(ls supabase/migrations/*.sql | wc -l)
+          echo "Found $MIGRATION_COUNT migration files."
+          if [ "$MIGRATION_COUNT" -eq 0 ]; then
+            echo "::error::No migration files found in supabase/migrations"
+            exit 1
+          fi
+          cat supabase/migrations/*.sql
+
           echo "Listing remote migrations status..."
           supabase migrations list --db-url "$DB_URL"
           supabase db push --dry-run --db-url "$DB_URL" --debug
