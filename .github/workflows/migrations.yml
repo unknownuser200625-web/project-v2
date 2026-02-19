@@ -28,35 +28,10 @@ jobs:
             echo "DB_URL=${{ secrets.SUPABASE_PROD_DB_URL }}" >> $GITHUB_ENV
           fi
 
-      - name: Prepare Isolated Config
-        run: |
-          # Prevent loading of problematic fields from tracked config.toml
-          rm -f supabase/config.toml
-          echo 'project_id = "ci-isolated"' > supabase/config.toml
-          echo '[db]' >> supabase/config.toml
-          echo 'major_version = 17' >> supabase/config.toml
-          echo '[db.migrations]' >> supabase/config.toml
-          echo 'enabled = true' >> supabase/config.toml
-
-      - name: Connection Audit & Link
+      - name: Run migrations (Stateless Mode)
         run: |
           if [ -z "$DB_URL" ]; then
-            echo "::error::DB_URL secret is empty or not set. Migration cannot proceed."
+            echo "::error::DB_URL secret is empty."
             exit 1
           fi
-
-          # Extract project ref and password to establish explicit context
-          PROJECT_REF=$(echo "$DB_URL" | sed -E 's|postgres(ql)?://postgres\.([a-z0-9]+).*|\2|')
-          DB_PASSWORD=$(echo "$DB_URL" | sed -E 's|postgres(ql)?://postgres\.[a-z0-9]+:(.*)@.*|\2|')
-
-          echo "PROJECT_REF=$PROJECT_REF" >> $GITHUB_ENV
-          echo "::add-mask::$DB_PASSWORD"
-          echo "DB_PASSWORD=$DB_PASSWORD" >> $GITHUB_ENV
-
-          echo "Linking to project $PROJECT_REF..."
-          supabase link --project-ref "$PROJECT_REF" --password "$DB_PASSWORD"
-
-      - name: Run migrations
-        run: |
-          # Explicitly provide connection parameters to override any residual config loading
-          supabase db push --db-url "$DB_URL" --project-ref "$PROJECT_REF" --password "$DB_PASSWORD"
+          supabase db push --db-url "$DB_URL"
