@@ -56,8 +56,9 @@ jobs:
 
       - name: Run migration dry-run
         run: |
-          supabase db push --dry-run --db-url "$DB_URL"
+          ls -R supabase
+          supabase db push --dry-run --db-url "$DB_URL" --debug
 
       - name: Run migrations
         run: |
-          supabase db push --db-url "$DB_URL"
+          supabase db push --db-url "$DB_URL" --debug
