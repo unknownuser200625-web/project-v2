@@ -28,12 +28,14 @@ jobs:
             echo "DB_URL=${{ secrets.SUPABASE_PROD_DB_URL }}" >> $GITHUB_ENV
           fi
 
-      - name: Prepare Isolated Config
+      - name: Prepare Robust Isolated Config
         run: |
           rm -f supabase/config.toml
           echo 'project_id = "ci-isolated"' > supabase/config.toml
           echo '[db]' >> supabase/config.toml
           echo 'major_version = 17' >> supabase/config.toml
+          echo '[db.migrations]' >> supabase/config.toml
+          echo 'enabled = true' >> supabase/config.toml
           echo "Isolated config created:"
           cat supabase/config.toml
 
@@ -60,10 +62,6 @@ jobs:
             fi
           fi
 
-      - name: Run migration dry-run
-        run: |
-          supabase db push --dry-run --db-url "$DB_URL" --project-ref "$PROJECT_REF" --debug
-
       - name: Run migrations
         run: |
           supabase db push --db-url "$DB_URL" --project-ref "$PROJECT_REF" --debug
@@ -71,4 +69,6 @@ jobs:
       - name: Final Verification
         run: |
           echo "Verifying migration application via psql..."
-          psql "$DB_URL" -c "SELECT tablename FROM pg_tables WHERE schemaname = 'public' AND tablename = 'pipeline_verification_test';"
+          # This will fail the job if the table is missing, which solves Shadow Success
+          psql "$DB_URL" -tAc "SELECT count(*) FROM pg_tables WHERE schemaname = 'public' AND tablename = 'pipeline_verification_test';" | grep -q '1' || (echo "::error::Table 'pipeline_verification_test' not found! Migration failed." && exit 1)
+          echo "Migration verified successfully!"
