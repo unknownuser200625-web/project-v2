@@ -57,6 +57,8 @@ jobs:
       - name: Run migration dry-run
         run: |
           ls -R supabase
+          echo "Listing remote migrations status..."
+          supabase migrations list --db-url "$DB_URL"
           supabase db push --dry-run --db-url "$DB_URL" --debug
 
       - name: Run migrations
