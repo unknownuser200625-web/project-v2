@@ -58,10 +58,12 @@ jobs:
 
       - name: Run migrations
         run: |
-          supabase db push --password "$DB_PASSWORD"
+          # Use explicit connection parameters to ensure success in stateless environment
+          supabase db push --db-url "$DB_URL" --project-ref "$PROJECT_REF" --password "$DB_PASSWORD" --debug
 
       - name: Final Verification
         run: |
           echo "Verifying migration application via psql..."
-          psql "$DB_URL" -tAc "SELECT count(*) FROM pg_tables WHERE schemaname = 'public' AND tablename = 'pipeline_verification_test';" | grep -q '1' || (echo "::error::Table 'pipeline_verification_test' not found! Migration failed." && exit 1)
+          # Verify the automation proof table specifically
+          psql "$DB_URL" -tAc "SELECT count(*) FROM pg_tables WHERE schemaname = 'public' AND tablename = 'pipeline_automation_proof';" | grep -q '1' || (echo "::error::Table 'pipeline_automation_proof' not found! Migration failed." && exit 1)
           echo "Migration verified successfully!"
