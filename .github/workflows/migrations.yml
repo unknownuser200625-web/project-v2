@@ -45,6 +45,7 @@ jobs:
           PROJECT_REF=$(echo "$DB_URL" | sed -E 's|postgres(ql)?://postgres\.([a-z0-9]+).*|\2|')
 
           echo "Extracted Project Ref: $PROJECT_REF"
+          echo "PROJECT_REF=$PROJECT_REF" >> $GITHUB_ENV
 
           EXPECTED_STAGING_REF="spkjdfynuoktuicrwpkl"
 
@@ -57,8 +58,17 @@ jobs:
 
       - name: Run migration dry-run
         run: |
-          supabase db push --dry-run --db-url "$DB_URL" --project-ref "$PROJECT_REF"
+          supabase db push --dry-run --db-url "$DB_URL" --project-ref "$PROJECT_REF" --debug > dry_run_log.txt 2>&1
 
       - name: Run migrations
         run: |
-          supabase db push --db-url "$DB_URL" --project-ref "$PROJECT_REF"
+          supabase db push --db-url "$DB_URL" --project-ref "$PROJECT_REF" --debug > push_log.txt 2>&1
+
+      - name: Upload Migration Logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: migration-logs
+          path: |
+            dry_run_log.txt
+            push_log.txt
