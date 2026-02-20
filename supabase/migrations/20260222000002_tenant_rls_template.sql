@@ -1,0 +1,17 @@
+-- =============================================================
+-- TENANT RLS MODELING TEMPLATE
+-- =============================================================
+-- All business tables in the app schema MUST:
+--   1. Include a tenant_id uuid NOT NULL column referencing app.tenants(id)
+--   2. Have RLS enabled: ALTER TABLE app.<table> ENABLE ROW LEVEL SECURITY;
+--   3. Define a SELECT policy using:
+--        USING (tenant_id = (SELECT id FROM app.tenants
+--                            WHERE id = auth.uid()::uuid))
+--   4. Define an INSERT policy using:
+--        WITH CHECK (tenant_id = (SELECT id FROM app.tenants
+--                                  WHERE id = auth.uid()::uuid))
+--   5. No BYPASS RLS granted to application roles.
+--
+-- This file is a documentation-only migration.
+-- It contains no executable SQL statements.
+-- =============================================================
