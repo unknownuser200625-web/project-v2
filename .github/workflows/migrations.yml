@@ -28,6 +28,11 @@ jobs:
             echo "DB_URL=${{ secrets.SUPABASE_PROD_DB_URL }}" >> $GITHUB_ENV
           fi
 
+      - name: Migration Immutability Guard
+        run: |
+          git fetch origin main
+          git diff origin/main -- supabase/migrations/ && exit 1 || true
+
       - name: Run migrations (Stateless Mode)
         run: |
           if [ -z "$DB_URL" ]; then
