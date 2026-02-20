@@ -35,3 +35,7 @@ jobs:
             exit 1
           fi
           supabase db push --db-url "$DB_URL"
+
+      - name: Drift Detection Guard
+        run: |
+          supabase db diff --db-url "$DB_URL" || exit 1
