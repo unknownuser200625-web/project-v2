@@ -38,3 +38,8 @@ All migrations MUST comply with the following rules, enforced at review time.
    The Supabase dashboard SQL editor must not be used for schema changes in staging or production.
    All schema changes must go through `supabase/migrations/` and the CI pipeline.
    Any dashboard change that is not replicated to a migration file will be flagged as drift by CI.
+
+8. **Tenant Isolation Enforcement**
+   All future app tables MUST include a mandatory foreign key to the tenant primitive:
+   `tenant_id uuid REFERENCES app.tenants(id) NOT NULL`
+   This is the non-negotiable anchor for Row-Level Security.
