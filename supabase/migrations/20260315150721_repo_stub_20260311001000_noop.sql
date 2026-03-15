@@ -1,0 +1,18 @@
+-- =============================================================================
+-- MIGRATION: repo_stub_20260311001000_noop
+-- DB VERSION: 20260315150721
+-- AUTHOR: Technical Implementer AI — befoodi V2
+-- DATE: 2026-03-15
+--
+-- PURPOSE:
+--   This no-op migration registers a DB version record corresponding to the
+--   repo stub file 20260311001000_fix_audit_partition_dual_policies_and_remaining_initplan.sql
+--   that existed in the repository with an incorrect version prefix.
+--
+--   The canonical schema content was applied as DB version 20260311121131.
+--   This stub prevents the Supabase CLI from attempting to apply the stale
+--   repo file 20260311001000_... as a new migration on a fresh database.
+--
+-- ROLLBACK: No schema changes — rollback is a no-op.
+-- =============================================================================
+SELECT 1; -- no-op

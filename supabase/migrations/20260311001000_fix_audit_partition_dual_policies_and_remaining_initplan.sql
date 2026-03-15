@@ -1,0 +1,18 @@
+-- =============================================================================
+-- STUB — PERMANENTLY SUPERSEDED
+-- Original intended version: 20260311001000 (incorrect prefix)
+-- Canonical schema content applied as DB version: 20260311121131
+-- Canonical repo file: 20260311121131_fix_audit_partition_dual_policies_and_remaining_initplan.sql
+--
+-- DB registration stub applied as: 20260315150721
+-- Canonical stub repo file: 20260315150721_repo_stub_20260311001000_noop.sql
+--
+-- WARNING: Do NOT rename or delete this file.
+-- The Supabase CLI will attempt to apply any file whose version prefix
+-- does not appear in schema_migrations. The version prefix '20260311001000'
+-- does not exist in the DB. If you run supabase db push or db reset,
+-- this file WILL be applied — harmlessly — as a SELECT 1 no-op, and a new
+-- phantom version record will be created. This is acceptable. The canonical
+-- migration content has already been applied under version 20260311121131.
+-- =============================================================================
+SELECT 1; -- no-op — harmless if applied by CLI
